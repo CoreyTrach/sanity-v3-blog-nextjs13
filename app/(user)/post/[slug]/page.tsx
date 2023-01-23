@@ -11,6 +11,22 @@ type Props = {
   };
 };
 
+export const revalidate = 60; // revalidate this page every 60 seconds
+
+export async function generateStaticParams() {
+  const query = groq`*[_type=='post']
+  {
+    slug
+  }`;
+
+  const slugs: any[] = await client.fetch(query);
+  const slugRoutes = slugs.map((slug) => slug.slug.current);
+
+  return slugRoutes.map((slug) => ({
+    slug,
+  }));
+}
+
 export default async function Post({ params: { slug } }: Props) {
   const query = groq`
     *[_type=='post' && slug.current == $slug][0]
@@ -21,7 +37,7 @@ export default async function Post({ params: { slug } }: Props) {
     }
 `;
 
-  const post: any = await client.fetch(query, { slug });
+  const posts: any = await client.fetch(query, { slug });
 
   return (
     <article className='px-10 pb-28'>
@@ -30,17 +46,17 @@ export default async function Post({ params: { slug } }: Props) {
           <div className='absolute top-0 w-full h-full opacity-10 blur-sm p-10'>
             <Image
               className='object-cover object-center mx-auto'
-              src={urlFor(post.mainImage).url()}
-              alt={post.author.name}
+              src={urlFor(posts.mainImage).url()}
+              alt={posts.author.name}
               fill
             />
           </div>
           <section className='p-5 bg-[#F7AB0A] w-full'>
             <div className='flex flex-col md:flex-row justify-between gap-y-5'>
               <div>
-                <h1 className='text-4xl font-extrabold'>{post.title}</h1>
+                <h1 className='text-4xl font-extrabold'>{posts.title}</h1>
                 <p>
-                  {new Date(post._createdAt).toLocaleDateString('en-US', {
+                  {new Date(posts._createdAt).toLocaleDateString('en-US', {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
@@ -50,21 +66,21 @@ export default async function Post({ params: { slug } }: Props) {
               <div className='flex items-center space-x-2'>
                 <Image
                   className='rounded-full'
-                  src={urlFor(post.author.image).url()}
-                  alt={post.author.name}
+                  src={urlFor(posts.author.image).url()}
+                  alt={posts.author.name}
                   height={40}
                   width={40}
                 />
                 <div className='w-64'>
-                  <h3 className='text-lg font-bold'>{post.author.name}</h3>
+                  <h3 className='text-lg font-bold'>{posts.author.name}</h3>
                   <div></div>
                 </div>
               </div>
             </div>
             <div>
-              <h2 className='italic pt-10'>{post.description}</h2>
+              <h2 className='italic pt-10'>{posts.description}</h2>
               <div className='flex items-center justify-end mt-auto space-x-2'>
-                {post.categories.map((category: any) => (
+                {posts.categories.map((category: any) => (
                   <p
                     key={category._id}
                     className='bg-gray-800 text-white px-3 py-1 rounded-full text-sm font-semibold mt-4'>
@@ -76,7 +92,7 @@ export default async function Post({ params: { slug } }: Props) {
           </section>
         </div>
       </section>
-      <PortableText value={post.body} components={RichTextComponents} />
+      <PortableText value={posts.body} components={RichTextComponents} />
     </article>
   );
 }
